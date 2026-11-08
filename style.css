@@ -89,8 +89,9 @@ section h2::before { content: "> "; color: var(--accent); font-family: ui-monosp
   margin: 4px 6px 0 0;
 }
 
-ul.plain { padding-left: 20px; color: var(--muted); }
-ul.plain li { margin: 6px 0; }
+ul.plain, ol.plain { padding-left: 20px; color: var(--muted); }
+ul.plain li, ol.plain li { margin: 6px 0; }
+code { font-family: ui-monospace, Consolas, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--text); font-size: 0.9em; }
 
 .note {
   border-left: 3px solid var(--accent);
