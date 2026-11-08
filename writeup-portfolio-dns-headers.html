@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 0: Portfolio, DNS and Security Headers | Kwanele Dube</title>
+  <meta name="description" content="How I put my portfolio online on a free subdomain with DNS and hardened it to an A+ on securityheaders.com.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">MrHim-creator</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="writeups.html">Write-ups</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <p class="alias">Week 0 &middot; 8 Nov 2026</p>
+    <h1>Putting my portfolio online with DNS and security headers</h1>
+    <p class="tagline">DNS &middot; CNAME &middot; Vercel &middot; HTTP security headers</p>
+  </div>
+
+  <section>
+    <h2>Goal</h2>
+    <p>Publish a portfolio on a free subdomain of a domain I already own (isizuluai.co.za), then harden it so it passes a public security headers scan.</p>
+  </section>
+
+  <section>
+    <h2>Tools and environment</h2>
+    <p>GitHub, Vercel (free Hobby plan), TrueHost DNS management, and securityheaders.com for testing.</p>
+  </section>
+
+  <section>
+    <h2>Steps</h2>
+    <ol class="plain">
+      <li>Created a public GitHub repo called <code>cybersecurity-portfolio</code> and uploaded the static site files. The repo holds no passwords or keys, so public is safe.</li>
+      <li>Imported the repo into Vercel and deployed it. Vercel gave me a temporary <code>.vercel.app</code> address to check the site first.</li>
+      <li>Added <code>portfolio.isizuluai.co.za</code> under Domains in Vercel. Vercel then showed the CNAME value it expected.</li>
+      <li>At TrueHost, added a CNAME record with the name <code>portfolio</code> pointing to that Vercel value. The site was live within minutes, and Vercel switched on HTTPS automatically.</li>
+      <li>Added a <code>vercel.json</code> file so every response carries six security headers (listed below).</li>
+      <li>Scanned the site at securityheaders.com and got an <strong>A+</strong>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>The six headers and what each one does</h2>
+    <ul class="plain">
+      <li><strong>Content-Security-Policy:</strong> tells the browser which sources of scripts, styles and images are allowed, which limits injected-script attacks.</li>
+      <li><strong>Strict-Transport-Security (HSTS):</strong> tells browsers to use HTTPS only for this site, which blocks downgrade attacks.</li>
+      <li><strong>X-Frame-Options:</strong> stops other sites from putting mine inside a frame, which prevents clickjacking.</li>
+      <li><strong>X-Content-Type-Options:</strong> stops the browser guessing file types, which prevents some content-sniffing attacks.</li>
+      <li><strong>Referrer-Policy:</strong> limits how much of my URL is shared when someone clicks a link off my site.</li>
+      <li><strong>Permissions-Policy:</strong> switches off browser features I don't use, such as camera, microphone and location.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What went wrong</h2>
+    <p>When adding the domain in Vercel, I typed it into the search box instead of clicking <strong>Add Existing</strong>. The search box only filters domains already added, so it showed "No Results Found". The lesson: read the button labels, because searching a list and adding to it are different actions.</p>
+  </section>
+
+  <section>
+    <h2>What I learned</h2>
+    <ul class="plain">
+      <li>A domain is the name I rent, hosting is the computer that serves the files, and DNS is the phone book connecting the two.</li>
+      <li>A subdomain of a domain I own costs nothing, because it is just one more DNS record.</li>
+      <li>A CNAME makes one name an alias for another, so visitors to my subdomain are sent to Vercel.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Defender's view</h2>
+    <ul class="plain">
+      <li>Security headers reduce several common browser-side attacks, but an A+ only says the headers are set. It does not make a site unhackable. This is a static site with a very small attack surface.</li>
+      <li><strong>Dangling DNS is a real risk.</strong> If I ever delete the Vercel project but leave the CNAME record in place, an attacker could claim the name on that hosting service and serve content from my subdomain. This is called a subdomain takeover. The fix is simple: remove the DNS record whenever I stop using a service.</li>
+      <li>Next improvement: review DNS records for anything pointing to services I no longer use.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">&copy; 2026 Kwanele Dube. Written about my own systems and tools built for practice.</div>
+</footer>
+
+</body>
+</html>
