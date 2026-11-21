@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 2: Linux Permissions and IPv4 Basics | Kwanele Dube</title>
+  <meta name="description" content="A hands-on lab on Linux file permissions, and how an IPv4 address splits into network and host portions.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">MrHim-creator</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="writeups.html">Write-ups</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <p class="alias">Week 2 &middot; 21 Nov 2026</p>
+    <h1>Linux permissions and IPv4 basics</h1>
+    <p class="tagline">chmod &middot; least privilege &middot; /etc/shadow &middot; IPv4 &middot; network vs host</p>
+  </div>
+
+  <section>
+    <h2>Goal</h2>
+    <p>Learn how Linux decides who can read, change and run a file by changing permissions myself and watching the result. Alongside it, learn how an IPv4 address splits into a network part and a host part (Cisco Networking Basics, Module 8).</p>
+  </section>
+
+  <section>
+    <h2>Tools and environment</h2>
+    <p>Kali Linux on WSL2 (isolated from my Windows drive), working inside a practice folder in my own home directory. For IPv4, the Cisco Networking Academy course.</p>
+  </section>
+
+  <section>
+    <h2>Part 1: the permissions lab</h2>
+    <ol class="plain">
+      <li>Created a practice folder and an empty file with <code>touch</code>, then checked it with <code>ls -l</code>. The default mode was <code>-rw-r--r--</code> (644): the owner can read and write, everyone else can only read.</li>
+      <li>Ran <code>chmod 600</code> on the file. The mode became <code>-rw-------</code>, so only the owner has any access.</li>
+      <li>Ran <code>chmod 777</code> to see the red-flag case. The mode became <code>-rwxrwxrwx</code>, so every user could read, change and run the file. Then I set it back to 644.</li>
+      <li>Created a one-line script and tried to run it with <code>./hello.sh</code>. Linux answered <strong>Permission denied</strong>, because the file had no <code>x</code> (execute) permission for anyone. Adding execute for the owner with <code>chmod u+x</code> fixes that.</li>
+      <li>Compared two real system files with <code>ls -l</code>:</li>
+    </ol>
+    <pre><code>-rw-r--r-- 1 root root   /etc/passwd
+-rw-r----- 1 root shadow /etc/shadow</code></pre>
+    <p><code>/etc/passwd</code> lists user accounts and is readable by everyone. <code>/etc/shadow</code> holds the password hashes and gives "others" no permissions at all, so <code>cat /etc/shadow</code> as a normal user returned <strong>Permission denied</strong>.</p>
+  </section>
+
+  <section>
+    <h2>Part 2: IPv4, network and host</h2>
+    <ul class="plain">
+      <li>An IPv4 address is <strong>32 bits</strong>, written as four <strong>octets</strong> of 8 bits each. An octet has 256 possible patterns, so it runs from 0 to 255.</li>
+      <li>The subnet mask shows which bits are the <strong>network</strong> (the 1s, shown as 255) and which are the <strong>host</strong> (the 0s). With mask <code>255.255.255.0</code>, the address <code>192.168.1.10</code> has network portion <code>192.168.1</code> and host portion <code>10</code>.</li>
+      <li>Two devices can talk directly only if their network portions match. <code>192.168.1.10</code> and <code>192.168.2.20</code> do not match, so traffic between them must go through a router, the default gateway.</li>
+      <li>To read an octet in binary, add the values of the bits that are switched on (128, 64, 32, 16, 8, 4, 2, 1). For example <code>11000000</code> is 128 + 64 = 192.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What went wrong</h2>
+    <ul class="plain">
+      <li><strong>I read the wrong line of output.</strong> When asked for the permissions after <code>chmod 600</code>, I gave the mode from before the change. Lesson: look at the output that comes after the command, and compare it with the line before to see what changed.</li>
+      <li><strong>I mixed up what <code>x</code> means.</strong> On a file it means run it. On a directory it means enter it. Lesson: ask what kind of object I am looking at before reading the letters.</li>
+      <li><strong>I confused bits with octets, and network with host.</strong> I first said an IPv4 address is 8 bits and that the last number is the network portion. Lesson: a mask of 255 means network and 0 means host, and the address is four octets of 8 bits, which makes 32.</li>
+      <li><strong>I read binary like a decimal number.</strong> I wrote <code>00001010</code> as "1.010". Lesson: treat it as a row of switches, and add the values of the ones that are on (8 + 2 = 10).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What I learned</h2>
+    <ul class="plain">
+      <li>A mode has three sets (owner, group, others), and each set can have read (4), write (2) and execute (1). So 644 is <code>rw-r--r--</code> and 600 is <code>rw-------</code>.</li>
+      <li>Permissions work on directories too, with different meanings: <code>r</code> lists the names, <code>w</code> creates or deletes items inside, and <code>x</code> lets me enter.</li>
+      <li>"Permission denied" is the system doing its job, not a fault.</li>
+      <li>The network and host split decides whether two devices can talk directly or need a router.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Defender's view</h2>
+    <ul class="plain">
+      <li><strong>Least privilege.</strong> Files should be readable and writable only by whoever needs them. A world-writable file (777) lets any user, or any process running as a user, change it, and attackers look for exactly that.</li>
+      <li><strong>Protecting credentials.</strong> Splitting user names (public) from password hashes (restricted) means that reading the user list does not hand over the passwords. If a shadow file ever became readable, an attacker could copy the hashes and crack them offline.</li>
+      <li><strong>Check permissions as part of hardening and auditing.</strong> <code>ls -l</code> on sensitive files, and a search for world-writable files, are basic checks a defender can run.</li>
+      <li><strong>Sudo is power.</strong> My account is in the <code>sudo</code> group, so I can run commands as root. That should be used deliberately, for things I understand.</li>
+      <li><strong>Network separation.</strong> Putting devices on different networks, with a router or firewall between them, limits what a compromised device can reach directly.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">&copy; 2026 Kwanele Dube. Written about my own systems and tools built for practice.</div>
+</footer>
+
+</body>
+</html>
