@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Week 3: Linux Text Tools and Log Analysis | Kwanele Dube</title>
+  <meta name="description" content="Practising grep, find, pipes and redirection on a small invented login log, and the mistakes that taught me the most.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html">MrHim-creator</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="writeups.html">Write-ups</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <p class="alias">Week 3 &middot; 28 Nov 2026</p>
+    <h1>Linux text tools and log analysis</h1>
+    <p class="tagline">grep &middot; find &middot; pipes &middot; redirection &middot; brute-force pattern</p>
+  </div>
+
+  <section>
+    <h2>Goal</h2>
+    <p>Learn the command-line tools analysts use to read logs (<code>head</code>, <code>tail</code>, <code>grep</code>, <code>find</code>, pipes and redirection), and use them to work out what happened in a small login log.</p>
+  </section>
+
+  <section>
+    <h2>Tools and environment</h2>
+    <p>Kali Linux on WSL2, isolated from my Windows drive. The log is a 15-line file I invented myself. Its IP addresses come from ranges reserved for documentation, so they point at no real systems. I also kept practising on a beginner command-line wargame, and I follow its rules by not publishing solutions.</p>
+  </section>
+
+  <section>
+    <h2>Steps</h2>
+    <ol class="plain">
+      <li>Created the log in a practice folder with a here-document (<code>cat &gt; access.log &lt;&lt; 'EOF'</code>). Each line has a date, a time, an event (login, file read, permission denied), a status and the user or IP.</li>
+      <li>Counted the lines with <code>wc -l</code> (15) and the failed logins with <code>grep -c</code> (8).</li>
+      <li>Filtered the failures for one user by piping one <code>grep</code> into another.</li>
+      <li>Counted failures per IP address with a pipeline, built one stage at a time so I could check each stage:</li>
+    </ol>
+    <pre><code>grep FAILED access.log | cut -d' ' -f6 | sort | uniq -c | sort -rn</code></pre>
+    <p>The result was 6 failures for one IP and 2 for another.</p>
+    <ol class="plain" start="5">
+      <li>Read the story in the log. The IP with 6 failures tried three different account names (admin, root and test), and then logged in successfully as <code>admin</code> at 14:13:31.</li>
+      <li>Saved the failed lines into their own file with <code>&gt;</code>, and added a note with <code>&gt;&gt;</code>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>What the log showed</h2>
+    <p>Many failures against common account names from one IP, followed by a success from the same IP, looks like a <strong>password-guessing attack that worked</strong>. I would treat the <code>admin</code> account as compromised: check what it did after 14:13:31, reset the password, block the IP, and add a failed-attempt limit and multi-factor login.</p>
+  </section>
+
+  <section>
+    <h2>What went wrong</h2>
+    <ul class="plain">
+      <li><strong>I overwrote my own log.</strong> I ran <code>ls -l &gt; access.log</code> by mistake, and <code>&gt;</code> replaces everything in a file. The log was gone. Fix: I rebuilt it from the commands I had used to create it. Habit now: make a backup with <code>cp</code> before experimenting, and double-check what follows every <code>&gt;</code>.</li>
+      <li><strong>An empty delimiter.</strong> I typed <code>cut -d''</code> and got "the delimiter must be a single character". I fixed it by putting a space between the quotes: <code>-d' '</code>.</li>
+      <li><strong>A search that returned 0 because of one character.</strong> I searched for <code>PERMISSION DENIED</code> with a space, but the log says <code>PERMISSION_DENIED</code> with an underscore. <code>grep</code> matches exact text. Habit: when I expect a result and get 0, compare my search text with the real file before trusting the 0.</li>
+      <li><strong>A typo in an appended line</strong> made my file 10 lines instead of 9. I rebuilt it from the source log instead of editing by hand.</li>
+      <li><strong>I misread the evidence.</strong> My first analysis blamed the wrong IP. Re-reading the output line by line, and naming the IP, the usernames and the time order, fixed it.</li>
+      <li><strong>On the wargame I forgot the port.</strong> Connecting without <code>-p</code> tried the default port and failed with "Permission denied (publickey)". I also typed the port number on its own line, which the shell tried to run as a command. The port belongs after <code>-p</code> in the same command.</li>
+      <li><strong>Mismatched quotes</strong> (opening with <code>"</code> and closing with <code>'</code>) left the shell waiting for more input with a <code>&gt;</code> prompt. I stopped it with Ctrl+C.</li>
+      <li><strong>I used <code>cat</code> on binary files</strong> and the terminal filled with garbage characters. The <code>file</code> command tells me what kind of file something is before I print it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What I learned</h2>
+    <ul class="plain">
+      <li><code>tail</code> shows the newest log lines, and <code>tail -f</code> follows a log as it grows.</li>
+      <li><code>grep</code> filters lines. <code>-c</code> counts them, <code>-i</code> ignores case, <code>-n</code> shows line numbers and <code>-v</code> shows lines that do not match.</li>
+      <li>A pipe sends the output of one command into the next. <code>sort | uniq -c</code> counts repeated lines, and <code>sort</code> must come first because <code>uniq</code> only groups lines that sit next to each other.</li>
+      <li><code>&gt;</code> overwrites a file and <code>&gt;&gt;</code> appends to it.</li>
+      <li><code>find</code> locates files by name, type, size or permissions. For example, it can look for world-writable files.</li>
+      <li>Check the file type before printing an unknown file.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Defender's view</h2>
+    <ul class="plain">
+      <li><strong>Logs are evidence, so protect them.</strong> My accidental overwrite shows how easily a log can be lost. Real systems limit who can write to logs, keep backups, and send copies to a separate log server so a single mistake or an attacker cannot erase the only copy.</li>
+      <li><strong>Work on copies.</strong> An analyst keeps the original log untouched and does the filtering on a copy.</li>
+      <li><strong>Detecting brute force.</strong> The pattern "many failed logins, then a success from the same IP" is a classic alert. It can be caught with failed-attempt counts per IP and per account, lockouts, rate limits and multi-factor login.</li>
+      <li><strong>Be careful with unknown files.</strong> Check the type before you print them, because binary data can garble a terminal and can hide things.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">&copy; 2026 Kwanele Dube. Written about my own systems and tools built for practice.</div>
+</footer>
+
+</body>
+</html>
